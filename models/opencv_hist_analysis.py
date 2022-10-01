@@ -1,9 +1,12 @@
 import os
+from random import randint
+from turtle import color
 import cv2
 import numpy as np
 import math
 import pickle
 from numpy.core.numeric import NaN
+from pprint import pprint
 
 
 class OpenCV_HistAnalysys_Model():
@@ -77,13 +80,13 @@ class OpenCV_HistAnalysys_Model():
                     desvio_c = media_c - i
                     break
 
-        if media_c is None or media_c == [] or media_c == NaN:
+        if media_c is None or media_c.size <= 0 or media_c == NaN:
             media_c = 0
-        if media_r is None or media_r == [] or media_r == NaN:
+        if media_r is None or media_r.size <= 0 or media_r == NaN:
             media_r = 0
-        if desvio_r is None or desvio_r == [] or desvio_r < 0:
+        if desvio_r is None or desvio_r.size <= 0 or desvio_r < 0:
             desvio_r = 0
-        if desvio_c is None or desvio_c == [] or desvio_c < 0:
+        if desvio_c is None or desvio_c.size <= 0 or desvio_c < 0:
             desvio_c = 0
         return row_count, col_count, media_c, media_r, desvio_c, desvio_r
 
@@ -117,9 +120,9 @@ class OpenCV_HistAnalysys_Model():
         ##cv2.imshow("bin_img 1 ",bin_img)
         row_count, col_count, media_c, media_r, desvio_c, desvio_r = self.hist_analisys(
             bin_img)
-        radius = int((desvio_c+desvio_r)/2)
+        radius = ((desvio_c+desvio_r)/2)
         # print(int(media_c),int(media_r),radius)
-        return (int(media_c) + iris_borders[2][0], int(media_r)+iris_borders[1][1]), radius
+        return ((media_c) + iris_borders[2][0], (media_r)+iris_borders[1][1]), radius
 
     def detect_pupil(self, eye_image, iris_borders):
         gray = self.convert_to_gray_scale(eye_image)
@@ -132,6 +135,10 @@ class OpenCV_HistAnalysys_Model():
         pupil, r = self.analyse_pupil(eye_image, iris_borders)
 
         return pupil, r
+
+
+def calc_dist2d(p1, p2):
+    return math.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
 
 
 if __name__ == "__main__":
@@ -154,14 +161,37 @@ if __name__ == "__main__":
         cv2.putText(img, str(i), (int(lms[0]), int(
             lms[1])), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1, cv2.LINE_AA)
         #cv2.circle(img, (int(lms[0]), int(lms[1])), 1, (0, 0, 255), 2)'''
+
+    # direita,cima,esquerda,baixo
     iris_dt = [iris_dt[4], iris_dt[1], iris_dt[0], iris_dt[6]]
     print(img.shape)
-    for dt in iris_dt:
-        print(dt)
+    '''for dt in iris_dt:
+        print(dt)'''
     pupil, p_r = model.detect_pupil(img, iris_dt)
     print(pupil, p_r)
 
-    cv2.circle(img, (int(pupil[0]), int(pupil[1])), p_r, (0, 0, 255), 2)
+    # pprint(data['ldmks']['ldmks_pupil_2d'])
+    lms = data['ldmks']['ldmks_pupil_2d']
+    # esquerda,baixo,direita,cima
+    pupil_dt = [lms[0], lms[1], lms[3], lms[5]]
+    print("centro: ", ((pupil_dt[2][0] + pupil_dt[0][0])/2, (pupil_dt[3][0] + pupil_dt[1][0])/2),
+          "| raio: ", (calc_dist2d(pupil_dt[0], pupil_dt[2])+calc_dist2d(pupil_dt[1], pupil_dt[3]))/2)
+    print(len(lms))
+    # eu fiz esse loop p ir vendo os pontos aparecendo na tela p saber onde ficava cada um (mas eu ainda posso ter errado)
+    '''for i in range(int(len(lms))):
+        color = (randint(0, 255), randint(0, 255), randint(0, 255))
+        cv2.circle(img, (int(lms[i][0]),
+                         int(lms[i][1])), 0, color, 2)'''
+    img1 = img.copy()
 
-    cv2.imshow("img", img)
+    cv2.circle(img1, (int(pupil[0]), int(pupil[1])),
+               int(p_r), (255, 0, 255), 1)
+    print((int((pupil_dt[2][0] + pupil_dt[0][0])/2), (int(pupil_dt[3][0] + pupil_dt[1][0])/2)),
+          int((calc_dist2d(pupil_dt[0], pupil_dt[2])+calc_dist2d(pupil_dt[1], pupil_dt[3]))/2))
+    img2 = img.copy()
+    cv2.circle(img2, (int((pupil_dt[2][0] + pupil_dt[0][0])/2), int((pupil_dt[3][0] + pupil_dt[1][0])/2)),
+               int((calc_dist2d(pupil_dt[0], pupil_dt[2])+calc_dist2d(pupil_dt[1], pupil_dt[3]))/2), (0, 0, 255), 1)
+    cv2.imshow("img1", img1)
+    cv2.imshow("img2", img2)
     cv2.waitKey(0)
+    #cv2.circle(img, (int(lms[0]), int(lms[1])), 1, (0, 0, 255), 2)
