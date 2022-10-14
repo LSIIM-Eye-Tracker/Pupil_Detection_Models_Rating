@@ -130,7 +130,10 @@ if __name__ == "__main__":
                 # calcula o erro
                 img_validation = calc_intersection_of_circles(p_real_center,p_real_radius,pcalc_center,pcalc_radius,img.shape)
                 error = calc_error((img_validation))
+                #img_validation = img_validation[np.where((img_validation==[0,0,0]))] = [255,255,255]
+                img_validation[np.where((img_validation==[0,0,0]).all(axis=2))] = [255,255,255]
                 numpy_horizontal_concat = np.concatenate((img, img_validation), axis=1)
+
                 # salva os resultados
                 file_names.append(file.split('.png')[0])
                 TPs.append(error["TP"])
