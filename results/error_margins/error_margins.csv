@@ -1,2 +1,2 @@
-index,dataset,e_m_x,e_m_y,e_m_r
-0,Cambridge_SynthesEyes_Dataset,0.1,0.1,0.17
+index,dataset,e_m_center,e_m_r
+0,Cambridge_SynthesEyes_Dataset,9,5
