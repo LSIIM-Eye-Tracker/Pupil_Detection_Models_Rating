@@ -1,6 +1,5 @@
 import os
 from random import randint
-from turtle import color
 import cv2
 import numpy as np
 import math
@@ -14,11 +13,10 @@ class OpenCV_HistAnalysys_Model():
         return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     def crop_iris(self, img, iris_borders):
-        print([int(iris_borders[1][1]), int(iris_borders[3][1])], [int(
-            iris_borders[2][0]), int(iris_borders[0][0])])
+        #print([int(iris_borders[1][1]), int(iris_borders[3][1])], [int(iris_borders[2][0]), int(iris_borders[0][0])])
         img = img[int(iris_borders[1][1]):int(iris_borders[3][1]),
                   int(iris_borders[2][0]):int(iris_borders[0][0])]
-        print(img.shape)
+        #print(img.shape)
         #cv2.imshow("img", img)
         cv2.waitKey(0)
         return img
@@ -141,6 +139,19 @@ def calc_dist2d(p1, p2):
     return math.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
 
 
+def calc_error(p_calc, p_real):
+    pcalc_center, pcalc_radius = p_calc
+    preal_center, preal_radius = p_real
+    data = {
+        "center_error": {
+            'x': math.sqrt((((preal_center[1]-pcalc_center[1])/preal_center[1]))**2),
+            'y': math.sqrt((((preal_center[0]-pcalc_center[0])/preal_center[0]))**2)
+        },
+        "radius_error": math.sqrt((((preal_radius-pcalc_radius)/preal_radius))**2)
+    }
+    return data
+
+
 if __name__ == "__main__":
     model = OpenCV_HistAnalysys_Model()
     img = cv2.imread(
@@ -164,33 +175,53 @@ if __name__ == "__main__":
 
     # direita,cima,esquerda,baixo
     iris_dt = [iris_dt[4], iris_dt[1], iris_dt[0], iris_dt[6]]
+    # altuta, largura, canais de cor
     print(img.shape)
     '''for dt in iris_dt:
         print(dt)'''
-    pupil, p_r = model.detect_pupil(img, iris_dt)
-    print(pupil, p_r)
+    pcalc_center, pcalc_radius = model.detect_pupil(img, iris_dt)
+    print(pcalc_center, pcalc_radius)
 
     # pprint(data['ldmks']['ldmks_pupil_2d'])
     lms = data['ldmks']['ldmks_pupil_2d']
     # esquerda,baixo,direita,cima
     pupil_dt = [lms[0], lms[1], lms[3], lms[5]]
-    print("centro: ", ((pupil_dt[2][0] + pupil_dt[0][0])/2, (pupil_dt[3][0] + pupil_dt[1][0])/2),
-          "| raio: ", (calc_dist2d(pupil_dt[0], pupil_dt[2])+calc_dist2d(pupil_dt[1], pupil_dt[3]))/2)
+    print("centro: ", ((pupil_dt[2][1] + pupil_dt[0][1])/2, (pupil_dt[3][0] + pupil_dt[1][0])/2),
+          "| raio: ", (calc_dist2d(pupil_dt[0], pupil_dt[2])/2, calc_dist2d(pupil_dt[1], pupil_dt[3])/2))
     print(len(lms))
     # eu fiz esse loop p ir vendo os pontos aparecendo na tela p saber onde ficava cada um (mas eu ainda posso ter errado)
-    '''for i in range(int(len(lms))):
+    esquerda = 0
+    direita = 0
+    cima = 0
+    baixo = 0
+    for i in range(1, int(len(lms))-1):
+        if (lms[i][0] < lms[esquerda][0]):
+            esquerda = i
+        if (lms[i][0] > lms[direita][0]):
+            direita = i
+        if (lms[i][1] < lms[cima][1]):
+            cima = i
+        if (lms[i][1] > lms[baixo][1]):
+            baixo = i
+    print(esquerda, baixo, direita, cima)
+
+    '''for i in range(int(len(lms))-1):
         color = (randint(0, 255), randint(0, 255), randint(0, 255))
         cv2.circle(img, (int(lms[i][0]),
                          int(lms[i][1])), 0, color, 2)'''
     img1 = img.copy()
 
-    cv2.circle(img1, (int(pupil[0]), int(pupil[1])),
-               int(p_r), (255, 0, 255), 1)
-    print((int((pupil_dt[2][0] + pupil_dt[0][0])/2), (int(pupil_dt[3][0] + pupil_dt[1][0])/2)),
-          int((calc_dist2d(pupil_dt[0], pupil_dt[2])+calc_dist2d(pupil_dt[1], pupil_dt[3]))/2))
+    cv2.circle(img1, (int(pcalc_center[0]), int(pcalc_center[1])),
+               int(pcalc_radius), (255, 0, 255), 1)
     img2 = img.copy()
-    cv2.circle(img2, (int((pupil_dt[2][0] + pupil_dt[0][0])/2), int((pupil_dt[3][0] + pupil_dt[1][0])/2)),
-               int((calc_dist2d(pupil_dt[0], pupil_dt[2])+calc_dist2d(pupil_dt[1], pupil_dt[3]))/2), (0, 0, 255), 1)
+    p_real_center = ((pupil_dt[3][0] + pupil_dt[1][0]) /
+                     2), ((pupil_dt[2][1] + pupil_dt[0][1])/2)
+    p_real_radius = (calc_dist2d(
+        pupil_dt[0], pupil_dt[2])/2 + calc_dist2d(pupil_dt[1], pupil_dt[3])/2)/2
+    cv2.circle(img2, (int(p_real_center[0]), int(p_real_center[1])),
+               int(p_real_radius), (0, 0, 255), 1)
+    pprint(calc_error((pcalc_center, pcalc_radius), (p_real_center, p_real_radius)))
+    cv2.imshow("img", img)
     cv2.imshow("img1", img1)
     cv2.imshow("img2", img2)
     cv2.waitKey(0)

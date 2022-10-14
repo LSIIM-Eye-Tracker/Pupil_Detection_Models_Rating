@@ -5,6 +5,8 @@ name = "pypi"
 
 [packages]
 opencv-python = "*"
+tqdm = "*"
+pandas = "*"
 
 [dev-packages]
 
